@@ -33,7 +33,6 @@ var loadTasks = function() {
 
   // loop over object properties
   $.each(tasks, function(list, arr) {
-    console.log(list, arr);
     // then loop over sub-array
     arr.forEach(function(task) {
       createTask(task.text, task.date, list);
@@ -45,102 +44,94 @@ var saveTasks = function() {
   localStorage.setItem("tasks", JSON.stringify(tasks));
 };
 
-$(".list-group").on("click", "p", function() {
+
+$(".list-group").on("click", "p", function(){
   var text = $(this)
     .text()
     .trim();
-    var textInput = $("<textarea>")
+
+  var textInput = $("<textarea>")
     .addClass("form-control")
     .val(text);
-    $(this).replaceWith(textInput);
-    textInput.trigger("focus");  
+
+  $(this).replaceWith(textInput);
+
+  textInput.trigger("focus");
 });
 
-    $(".list-group").on("blur", "textarea", function() {
-    // get the textarea's current value/text
-    var text = $(this)
-      .val()
-      .trim();
+$(".list-group").on("blur", "textarea", function() {
+  var text = $(this)
+    .val()
+    .trim();
 
-    // get the parent ul's id attribute
-    var status = $(this)
-      .closest(".list-group")
-      .attr("id")
-      .replace("list-", "");
+  var status = $(this)
+    .closest(".list-group")
+    .attr("id")
+    .replace("list-", "");
 
-    // get the task's position in the list of other li elements
-    var index = $(this)
-      .closest(".list-group-item")
-      .index();
+  var index = $(this)
+    .closest(".list-group-item")
+    .index();
 
+  tasks[status][index].index = text;
+  saveTasks();
 
-    // tasks is an object.
-    // tasks[status] returns an array (e.g., toDo).
-    // tasks[status][index] returns the object at the given index in the array.
-    // tasks[status][index].text returns the text property of the object at the given index.
-    tasks[status][index].text = text;
-
-    // recreate p element
-    var taskP = $("<p>")
+  var taskP = $("<p>")
     .addClass("m-1")
     .text(text);
-    // replace textarea with p element
-    $(this).replaceWith(taskP);
-    // Updating this tasks object was necessary for localStorage, so we call saveTasks() immediately afterwards.
-    saveTasks();
-    });
+  
+  $(this).replaceWith(taskP);
+})
 
-    // due date was clicked
-    $(".list-group").on("click", "span", function() {
-      // get current text
-      var date = $(this)
-        .text()
-        .trim();
+$(".list-group").on("click", "span", function() {
+  // get current text
+  var date = $(this)
+    .text()
+    .trim();
+  
+  // create new input element
+  var dateInput = $("<input>")
+    .attr("type", "text")
+    .addClass("form-control")
+    .val(date);
 
-      // create new input element
-      var dateInput = $("<input>")
-      // In jQuery, attr() can serve two purposes. With one argument, it gets an attribute (e.g., attr("id")). With two arguments, it sets an attribute (e.g., attr("type", "text")).
-        .attr("type", "text")
-        .addClass("form-control")
-        .val(date);
+  // swap out elements
+  $(this).replaceWith(dateInput);
 
-      // swap out elements
-      $(this).replaceWith(dateInput);
+  //automatically focus on new element
+  dateInput.trigger("focus");
+});
 
-      // automatically focus on new element
-      dateInput.trigger("focus");
-    });
+// value of due date was changed
+$(".list-group").on("blur", "input[type='text']", function() {
+  // get current text
+  var date = $(this)
+    .val()
+    .trim();
 
-      // value of due date was changed
-  $(".list-group").on("blur", "input[type='text']", function() {
-    // get current text
-    var date = $(this)
-      .val()
-      .trim();
+  // get the parent ul's id attribute
+  var status = $(this)
+    .closest(".list-group")
+    .attr("id")
+    .replace("list-", "");
+  
+  // get the task's psoition in teh list of the other li elements
+  var index = $(this)
+    .closest(".list-group-item")
+    .index();
+  
+  // update tasks in array and re-save to localstorage
+  tasks[status][index].date = date;
+  saveTasks();
 
-    // get the parent ul's id attribute
-    var status = $(this)
-      .closest(".list-group")
-      .attr("id")
-      .replace("list-", "");
-
-    // get the task's position in the list of other li elements
-    var index = $(this)
-      .closest(".list-group-item")
-      .index();
-
-    // update task in array and re-save to localstorage
-    tasks[status][index].date = date;
-    saveTasks();
-
-    // recreate span element with bootstrap classes
-    var taskSpan = $("<span>")
-      .addClass("badge badge-primary badge-pill")
-      .text(date);
-
-    // replace input with span element
-    $(this).replaceWith(taskSpan);
-  });
+  // recreate span element with bootstrap classes
+  var taskSpan = $("<span>")
+    .addClass("badge badge-primary badge-pill")
+    .text(date);
+  
+  //replace input with span element
+  $(this).replaceWith(taskSpan);
+});
 
 // modal was triggered
 $("#task-form-modal").on("show.bs.modal", function() {
@@ -185,7 +176,64 @@ $("#remove-tasks").on("click", function() {
   saveTasks();
 });
 
+$(".card .list-group").sortable({
+  connectWith: $(".card .list-group"), 
+  scroll: false, 
+  tolerance: "pointer", 
+  helper: "clone", 
+  activate: function(event) {
+    console.log("activate", this);
+  }, 
+  deactivate: function(event) {
+    console.log("deactivate", this);
+  }, 
+  over: function(event) {
+    console.log("over", event.target);
+  }, 
+  out: function(event) {
+    console.log("out", event.target);
+  }, 
+  update: function(event) {
+    var tempArr = [];
+    $(this).children().each(function() {
+      var text = $(this)
+        .find("p")
+        .text()
+        .trim();
+      
+      var date = $(this)
+        .find("span")
+        .text()
+        .trim();
+
+      tempArr.push({
+        text: text, 
+        date: date
+      });
+    });
+    var arrName = $(this)
+      .attr("id")
+      .replace("list-", "");
+    
+    tasks[arrName] = tempArr;
+    saveTasks();
+  }
+});
+
+$("#trash").droppable({
+  accept: ".card .list-group-item", 
+  tolerance: "touch", 
+  drop: function(event, ui) {
+    ui.draggable.remove();
+    console.log("drop");
+  }, 
+  over: function(event, ui) {
+    console.log("over");
+  }, 
+  out: function(event, ui) {
+    console.log("out");
+  }
+});
+
 // load tasks for the first time
 loadTasks();
-
-
